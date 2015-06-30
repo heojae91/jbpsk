@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.f4grx.audiobpsk;
 
 import java.util.concurrent.LinkedBlockingQueue;
@@ -12,26 +7,26 @@ import javax.sound.sampled.TargetDataLine;
 
 /**
  *
- * @author slo
+ * @author f4grx
  */
 public class Recorder implements Runnable {
 
     private final TargetDataLine line;
-    private final int tone;
-    private final int samplerate;
+    private final int samplerate = 44100;
+    private final int bufsize = 8192;
+    private double tone;
     private boolean running;
     private boolean complete;
     private Thread t;
     private RecorderCallback callback;
-    private int baudrate;
+    private final IIRBiquadFilter fi = new IIRBiquadFilter(2, samplerate);
+    private final IIRBiquadFilter fq = new IIRBiquadFilter(2, samplerate);
     
     LinkedBlockingQueue<Byte> q;
-    private double[] fltbuf;
 
     Recorder(TargetDataLine l) {
         line = l;
         tone = 1000;
-        samplerate = 44100;
         q = new LinkedBlockingQueue<>();
     }
 
@@ -39,10 +34,13 @@ public class Recorder implements Runnable {
         callback = cb;
     }
     
+    private static final int NZEROS = 2;
+    private static final int NPOLES = 2;
+    
+    @Override
     public void run() {
         System.out.println("recorder start");
         AudioFormat af = new AudioFormat(samplerate, 16, 2, true, false);
-        int bufsize = 8192;
         try {
             line.open(af, bufsize);
             System.out.println("line opened ->" + af);
@@ -57,26 +55,68 @@ public class Recorder implements Runnable {
         //start generation
         running = true;
         complete = false;
-        double omega = 2 * Math.PI * (double) tone / (double) samplerate;
+        double omega;
         double phase = 0;
         int samples = bufsize / af.getFrameSize();
         System.out.println("samples per buffer:" + samples + " duration(ms):" + 1000.0 * (double) samples / (double) samplerate);
         int offset;
         byte[] buf = new byte[bufsize];
-        fltbuf = new double[samples];
-        double[] locbuf = fltbuf;
+        double[] fltbuf = new double[samples];
+        double si, sq, sample, sim, sqm;
+        double xv[] = new double[NZEROS+1];
+        double yv[] = new double[NPOLES+1];
+        double error;
         
+        //low pass filter coefficients
+
+
         while (running) {
             try {
                 line.read(buf, 0, bufsize);
                 offset = 0;
                 int index = 0;
+                double erroravg = 0;
+                
+                //For each sample
                 while(offset<bufsize) {
-                    offset = getsample(af,buf,offset,locbuf,index++);                    
+                    offset = getsample(af,buf,offset,fltbuf,index);
+                    sample = fltbuf[index];
+                    index++;
+                    
+                    //Update VCO
+                    omega = 2 * Math.PI * tone / (double) samplerate;
+                    phase += omega;
+                    si = Math.cos(phase);
+                    sq = Math.sin(phase);
+
+                    //Costas loop
+                    //Mix
+                    sim = si * sample;
+                    sqm = sq * sample;
+
+                    //LPF 
+                    sim = fi.process(sim);
+                    sqm = fq.process(sqm);
+                    
+                    //Multiply to get error term
+                    error = sim * sqm;
+                    
+                    //should also be LPFed
+                    erroravg += error;
+                    
+                    //Loop gain...
+                    
+                    //update VCO
+                    tone -= error;
+                    
+                    //System.out.println( (""+sample+"\t"+error).replace('.', ',') );
                 }
+                
                 if(callback!=null) {
-                    callback.onBuffer(locbuf);
+                    callback.onBuffer(fltbuf);
+                    callback.onLock(false, erroravg, tone);
                 }
+                
                 if (Thread.interrupted()) {
                     throw new InterruptedException("interrupt pending");
                 }
@@ -147,25 +187,12 @@ public class Recorder implements Runnable {
     }
 
     public void setBaud(int br) {
-        baudrate = br;
         System.out.println("baudrate -> "+br);
     }
     
-    public void setLocalOsc(int br) {
-        baudrate = br;
-        System.out.println("LO freq -> "+br);
+    public void setLocalOsc(int t) {
+        tone = t;
+        System.out.println("LO freq -> "+t);
     }
 
-    //Executed in the calling thread
-    public void append(String text) {
-        byte[] bs = text.getBytes();
-        int count = 0;
-        for(byte b : bs) {
-            q.add(b);
-            count++;
-        }
-        System.out.println("added bytes:"+count);
-    }
-    
-    
 }

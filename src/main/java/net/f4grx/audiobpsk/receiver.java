@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package net.f4grx.audiobpsk;
 
 import java.util.logging.Level;
@@ -17,7 +12,7 @@ import org.jtransforms.fft.DoubleFFT_1D;
 
 /**
  *
- * @author slo
+ * @author f4grx
  */
 public class receiver extends javax.swing.JFrame implements RecorderCallback {
     
@@ -123,6 +118,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         jLabel7 = new javax.swing.JLabel();
         btnSetFmax = new javax.swing.JButton();
         jCheckBox1 = new javax.swing.JCheckBox();
+        lblStatus = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -151,7 +147,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         );
         panWaveLayout.setVerticalGroup(
             panWaveLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 288, Short.MAX_VALUE)
+            .addGap(0, 191, Short.MAX_VALUE)
         );
 
         jLabel6.setText("Amp");
@@ -169,6 +165,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
 
         jCheckBox1.setText("auto");
 
+        lblStatus.setText("Status");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -176,11 +174,11 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(panWave, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(lblStatus, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel1)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(cmbDevices, 0, 382, Short.MAX_VALUE)
+                        .addComponent(cmbDevices, 0, 402, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(btnOpenClose))
                     .addGroup(layout.createSequentialGroup()
@@ -198,7 +196,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel7)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnSetFmax)))
+                        .addComponent(btnSetFmax))
+                    .addComponent(panWave, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -222,6 +221,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                     .addComponent(btnSetFmax)
                     .addComponent(jCheckBox1))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(lblStatus)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(panWave, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
@@ -254,6 +255,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLabel7;
+    private javax.swing.JLabel lblStatus;
     private javax.swing.JPanel panWave;
     private javax.swing.JTextField txtBauds;
     private javax.swing.JTextField txtImax;
@@ -287,6 +289,11 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
             panWave.getGraphics().drawLine(x, y, x, h-1);
         }
 
+    }
+
+    @Override
+    public void onLock(boolean locked, double error, double tone) {
+        lblStatus.setText("error "+error+"  tone "+tone);
     }
         
 }
