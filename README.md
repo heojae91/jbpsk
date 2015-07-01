@@ -34,7 +34,8 @@ Transmitter side
 - select the audio output
 - lower the audio volume, or beware, high-level audio tones will hurt your ears, your wife, your newborn, and your neighbours.
 - click open, this starts a carrier audio output
-- type some data in the text control then press enter, the data is modulated on the carrier. The audio phase is reversed each time a zero bit is sent.
+- you can adjust the generator frequency with the slider
+- type some data in the text control then press enter, the data is modulated on the carrier. The audio phase is reversed each time a zero bit is sent. This is not a standard format yet, we plan to implement AX.25 BPSK UI franes, but this is not done yet. Modulation is raw.
 - click close to stop the carrier
 
 Receiver side
@@ -42,6 +43,10 @@ Receiver side
 - select the audio input
 - open it using the button
 - look at the audio spectrum (vertical scale is automatic)
+- the red vertical line is the detected signal frequency
+- if you change the frequency slightly on the transmitter side, the receiver will stay locked to this frequency.
+- if you change the freequency too far from the current frequency, the receiver will not be able to stay locked.
+- You can click in the spectrum to "hint" the receiver PLL on where to look for a lock.
 
 Build
 =====
@@ -54,4 +59,6 @@ The project uses the FFT routines from JTransform.
 
 TODO
 ====
-Decoding! For the moment, the only thing done in the receiver is displaying the spectrum. But you will only know that if you RTFM until here.
+- Decoding! For the moment, the only thing done in the receiver is displaying the spectrum. But you will only know that if you RTFM until here.
+- Better frequency acquisition range
+- Lock indication (the current indication is only NF/AFNOR 1664 compliant)
