@@ -16,39 +16,45 @@ import javax.sound.sampled.TargetDataLine;
  */
 public class Recorder implements Runnable {
 
-    private final TargetDataLine line;
-    private final int samplerate;
-    private final int bufsize = 8192;
-    private double tone;
+    private Thread t;
     private boolean running;
     private boolean complete;
-    private Thread t;
-    private RecorderCallback callback;
-    IirFilter fi, fq;
+    private final TargetDataLine line;
+    private final int bufsize;
+    private final int samplerate;
     LinkedBlockingQueue<Byte> q;
+    private RecorderCallback callback;
+
+    
+    private double freq;
+    private IirFilter fi, fq;
+    private double omega;
 
     Recorder(TargetDataLine l) {
         line = l;
         samplerate = 44100;
-                
-        tone = 1000;
+        bufsize = 8192;   
+        freq = 1000;
         q = new LinkedBlockingQueue<>();
-        IirFilterCoefficients coeffs = IirFilterDesignFisher.design(
+        
+        IirFilterCoefficients coeffs1 = IirFilterDesignFisher.design(
                 FilterPassType.lowpass, 
-                FilterCharacteristicsType.chebyshev, 
-                2, //filterOrder, 
+                FilterCharacteristicsType.butterworth, 
+                4, //filterOrder, 
                 0, //filterRipple, 
-                0.5, //fcf1Rel, 
-                0.5 //fcf2Rel
+                0.1, //10000.0/(double)samplerate, //fcf1Rel, 
+                0 //fcf2Rel
                 );
-        fi = new IirFilter(coeffs);
-        fq = new IirFilter(coeffs);
+        fi = new IirFilter(coeffs1);
+        fq = new IirFilter(coeffs1);
     }
 
     public void setCallback(RecorderCallback cb) {
         callback = cb;
     }
 
+    private static final double TWOPI = 2*Math.PI;
+    
     @Override
     public void run() {
         System.out.println("recorder start");
@@ -67,7 +73,6 @@ public class Recorder implements Runnable {
         //start generation
         running = true;
         complete = false;
-        double omega;
         double phase = 0;
         int samples = bufsize / af.getFrameSize();
         System.out.println("samples per buffer:" + samples + " duration(ms):" + 1000.0 * (double) samples / (double) samplerate);
@@ -75,15 +80,20 @@ public class Recorder implements Runnable {
         byte[] buf = new byte[bufsize];
         double[] fltbuf = new double[samples];
         double si, sq, sample, sim, sqm;
-        double error;
+        double error = 0;
+        double tone = 0;
+        omega = TWOPI * freq / (double) samplerate;
 
         //low pass filter coefficients
         while (running) {
+            double alpha = 0.1;
+            double beta = (alpha * alpha) / 4.0d;
+            double errtot;
             try {
                 line.read(buf, 0, bufsize);
                 offset = 0;
                 int index = 0;
-                double erroravg = 0;
+                errtot = 0;
 
                 //For each sample
                 while (offset < bufsize) {
@@ -92,36 +102,50 @@ public class Recorder implements Runnable {
                     index++;
 
                     //Update VCO
-                    omega = 2 * Math.PI * tone / (double) samplerate;
                     phase += omega;
+                    phase += alpha * error;
+
+                    omega += beta  * error;
+
+                    //bind freq
+                    tone = (omega*samplerate)/TWOPI;
+                    if(tone < 500) {
+                        omega = (TWOPI*500/samplerate);
+                    }
+                    if(tone > 4000) {
+                        omega = (TWOPI*4000/samplerate);
+                    }
+
+                    if(phase>TWOPI) {
+                        phase -= TWOPI;
+                    }
                     si = Math.cos(phase);
-                    sq = Math.sin(phase);
+                    sq = -Math.sin(phase);
 
                     //Costas loop
-                    //Mix
+                    //Mix step
                     sim = si * sample;
                     sqm = sq * sample;
 
-                    //LPF 
-                    sim = fi.process(sim);
-                    sqm = fq.process(sqm);
+                    //LPF step
+                    sim = fi.step(sim);
+                    sqm = fq.step(sqm);
 
                     //Multiply to get error term
                     error = sim * sqm;
 
-                    //should also be LPFed
-                    erroravg += error;
-
-                    //Loop gain...
-                    //update VCO
-                    tone -= error;
-
-                    //System.out.println( (""+sample+"\t"+error).replace('.', ',') );
+                    errtot += error;
+                    
                 }
-
+                
                 if (callback != null) {
-                    callback.onBuffer(fltbuf);
-                    callback.onLock(false, erroravg, tone);
+                    double f = omega * (double) samplerate/ TWOPI;
+                    callback.onBuffer(fltbuf, f);
+                    boolean locked = errtot<1e-4;
+                    callback.onLock(locked, errtot, f);
+                    if(!locked) {
+                        System.out.println("unlock err "+errtot);
+                    }
                 }
 
                 if (Thread.interrupted()) {
@@ -198,8 +222,16 @@ public class Recorder implements Runnable {
     }
 
     public void setLocalOsc(int t) {
-        tone = t;
+        freq = t;
         System.out.println("LO freq -> " + t);
+    }
+
+    public int getSampleRate() {
+        return samplerate;
+    }
+
+    void hintFreq(double hfreq) {
+        omega = TWOPI * hfreq / (double) samplerate;
     }
 
 }

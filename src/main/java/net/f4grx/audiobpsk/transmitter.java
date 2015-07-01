@@ -17,7 +17,7 @@ public class transmitter extends javax.swing.JFrame {
     
     private boolean txtMsgClicked;
    
-    private Player p;
+    private Player player;
     
     /**
      * Creates new form sender
@@ -25,6 +25,9 @@ public class transmitter extends javax.swing.JFrame {
     public transmitter() {
         initComponents();
         txtMsgClicked = false;
+        sldFreq.setMinimum(100);
+        sldFreq.setMaximum(10000);
+        sldFreq.setValue(1000);
         DefaultComboBoxModel<MixerProxy> lm = new DefaultComboBoxModel<>();
         cmbDevices.setModel(lm);
         
@@ -60,11 +63,8 @@ public class transmitter extends javax.swing.JFrame {
         }
     }
 
-    private void open(int freq) {
-        p=null;
-        if(freq<100 || freq > 10000) {
-            return;
-        }
+    private void open() {
+        player=null;
         Line line;
         DefaultComboBoxModel<MixerProxy> mod = (DefaultComboBoxModel<MixerProxy>) cmbDevices.getModel();
         Mixer m = mod.getElementAt(cmbDevices.getSelectedIndex()).getMixer();
@@ -76,9 +76,10 @@ public class transmitter extends javax.swing.JFrame {
                 System.out.println("  source: "+line.toString());
                 if(line instanceof SourceDataLine) {
                     curline = line;
-                    p = new Player((SourceDataLine)curline, freq);
-                    p.setBaud(Integer.decode(txtBauds.getText()));
-                    p.start();
+                    player = new Player((SourceDataLine)curline);
+                    player.setBaud(Integer.decode(txtBauds.getText()));
+                    player.setFreq((double)sldFreq.getValue());
+                    player.start();
                     break;
                 }
             } catch (LineUnavailableException ex) {
@@ -93,8 +94,8 @@ public class transmitter extends javax.swing.JFrame {
     }
 
     private void close() {
-        p.stop();
-        p=null;
+        player.stop();
+        player=null;
     }
     
     /**
@@ -110,8 +111,7 @@ public class transmitter extends javax.swing.JFrame {
         cmbDevices = new javax.swing.JComboBox();
         btnOpenClose = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
-        txtTone = new javax.swing.JTextField();
-        jLabel3 = new javax.swing.JLabel();
+        lblFreq = new javax.swing.JLabel();
         jLabel4 = new javax.swing.JLabel();
         txtBauds = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
@@ -119,6 +119,7 @@ public class transmitter extends javax.swing.JFrame {
         jList1 = new javax.swing.JList();
         txtMsg = new javax.swing.JTextField();
         jButton1 = new javax.swing.JButton();
+        sldFreq = new javax.swing.JSlider();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("BPSK transmitter");
@@ -134,14 +135,7 @@ public class transmitter extends javax.swing.JFrame {
 
         jLabel2.setText("Audio freq :");
 
-        txtTone.setText("1000");
-        txtTone.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                txtToneActionPerformed(evt);
-            }
-        });
-
-        jLabel3.setText("Hz");
+        lblFreq.setText("5000 Hz");
 
         jLabel4.setText("Baud rate :");
 
@@ -167,6 +161,12 @@ public class transmitter extends javax.swing.JFrame {
 
         jButton1.setText("Clear log");
 
+        sldFreq.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                sldFreqStateChanged(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -174,19 +174,7 @@ public class transmitter extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 380, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(cmbDevices, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnOpenClose))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel2)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtTone)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel3))
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 426, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel4)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -196,17 +184,31 @@ public class transmitter extends javax.swing.JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(txtMsg)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButton1)))
+                        .addComponent(jButton1))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel1)
+                            .addComponent(jLabel2))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(sldFreq, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(lblFreq, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(cmbDevices, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btnOpenClose)))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
                     .addComponent(jLabel2)
-                    .addComponent(txtTone, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel3))
+                    .addComponent(sldFreq, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(lblFreq))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
@@ -218,7 +220,7 @@ public class transmitter extends javax.swing.JFrame {
                     .addComponent(txtBauds, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel5))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 181, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 278, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(txtMsg, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -226,31 +228,28 @@ public class transmitter extends javax.swing.JFrame {
                 .addContainerGap())
         );
 
+        layout.linkSize(javax.swing.SwingConstants.VERTICAL, new java.awt.Component[] {jLabel2, lblFreq, sldFreq});
+
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnOpenCloseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOpenCloseActionPerformed
         // TODO add your handling code here:
-        if(p==null) {
-            open(Integer.decode(txtTone.getText()));
+        if(player==null) {
+            open();
         } else {
             close();
         }
 
-        txtTone.setEnabled(p==null);
-        btnOpenClose.setText(p==null?"Open":"Close");
+        btnOpenClose.setText(player==null?"Open":"Close");
     }//GEN-LAST:event_btnOpenCloseActionPerformed
 
-    private void txtToneActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txtToneActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txtToneActionPerformed
-
     private void txtMsgKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_txtMsgKeyReleased
-        if(p==null) {
+        if(player==null) {
             return;
         }
         if(evt.getKeyCode()==10) {
-            p.append(txtMsg.getText());
+            player.append(txtMsg.getText());
             txtMsg.setText("");
         }
     }//GEN-LAST:event_txtMsgKeyReleased
@@ -262,19 +261,28 @@ public class transmitter extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_txtMsgMouseReleased
 
+    private void sldFreqStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_sldFreqStateChanged
+        if(player==null) {
+            return;
+        }
+        int freq = sldFreq.getValue();
+        player.setFreq((double)freq);
+        lblFreq.setText(freq+" Hz");
+    }//GEN-LAST:event_sldFreqStateChanged
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnOpenClose;
     private javax.swing.JComboBox cmbDevices;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
     private javax.swing.JList jList1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblFreq;
+    private javax.swing.JSlider sldFreq;
     private javax.swing.JTextField txtBauds;
     private javax.swing.JTextField txtMsg;
-    private javax.swing.JTextField txtTone;
     // End of variables declaration//GEN-END:variables
 }

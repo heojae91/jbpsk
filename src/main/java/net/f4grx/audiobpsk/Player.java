@@ -11,8 +11,8 @@ import javax.sound.sampled.SourceDataLine;
  */
 class Player implements Runnable {
     private final SourceDataLine line;
-    private final int tone;
     private final int samplerate;
+    private double freq;
     private boolean running;
     private boolean complete;
     private Thread t;
@@ -22,21 +22,23 @@ class Player implements Runnable {
     private int sendbits; //number of bits to send from current byte
     
     LinkedBlockingQueue<Byte> q;
+    private final int bufsize;
 
-    public Player(SourceDataLine l, int t) {
+    public Player(SourceDataLine l) {
         line = l;
-        tone = t;
         samplerate = 44100;
+        bufsize = 8192;
         baudrate = 0;
         baudcount = 0;
         sendbits = 0;
         q = new LinkedBlockingQueue<>();
     }
 
+    private static final double TWOPI = 2 * Math.PI;
+    
     public void run() {
         System.out.println("player start");
         AudioFormat af = new AudioFormat(samplerate, 16, 2, true, false);
-        int bufsize = 8192;
         try {
             line.open(af, bufsize);
             System.out.println("line opened ->" + af);
@@ -54,7 +56,7 @@ class Player implements Runnable {
         //start generation
         running = true;
         complete = false;
-        double omega = 2 * Math.PI * (double) tone / (double) samplerate;
+        double omega;
         double phase = 0;
         double sign = 1;
         int baudindex = 0;
@@ -65,9 +67,13 @@ class Player implements Runnable {
         while (running) {
             try {
                 offset = 0;
+                omega = TWOPI * (double) freq / (double) samplerate;
                 for (int i = 0; i < samples; i++) {
                     double sample = Math.sin(phase);
                     phase += omega;
+                    if(phase>TWOPI) {
+                        phase -= TWOPI;
+                    }
                     baudindex += 1;
                     if(baudindex == baudcount) {
                         baudindex = 0;
@@ -174,6 +180,10 @@ class Player implements Runnable {
             count++;
         }
         System.out.println("added bytes:"+count);
+    }
+
+    public void setFreq(double f) {
+        freq = f;
     }
     
 }

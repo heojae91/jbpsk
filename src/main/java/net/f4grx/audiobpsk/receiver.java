@@ -1,5 +1,7 @@
 package net.f4grx.audiobpsk;
 
+import java.awt.Color;
+import java.awt.Graphics;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sound.sampled.AudioSystem;
@@ -16,7 +18,7 @@ import org.jtransforms.fft.DoubleFFT_1D;
  */
 public class receiver extends javax.swing.JFrame implements RecorderCallback {
     
-    private Recorder r;
+    private Recorder recorder;
     private double imax;
     
     /**
@@ -64,7 +66,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
     }
 
     private void open() {
-        r=null;
+        recorder=null;
         Line line;
         DefaultComboBoxModel<MixerProxy> mod = (DefaultComboBoxModel<MixerProxy>) cmbDevices.getModel();
         Mixer m = mod.getElementAt(cmbDevices.getSelectedIndex()).getMixer();
@@ -76,9 +78,9 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                 System.out.println("  target: "+line.toString());
                 if(line instanceof TargetDataLine) {
                     curline = line;
-                    r = new Recorder((TargetDataLine)curline);
-                    r.setCallback(this);
-                    r.start();
+                    recorder = new Recorder((TargetDataLine)curline);
+                    recorder.setCallback(this);
+                    recorder.start();
                     break;
                 }
             } catch (LineUnavailableException ex) {
@@ -93,8 +95,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
     }
 
     private void close() {
-        r.stop();
-        r=null;
+        recorder.stop();
+        recorder=null;
     }
 
     /**
@@ -139,6 +141,11 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         jLabel5.setText("bauds");
 
         panWave.setBackground(new java.awt.Color(255, 255, 255));
+        panWave.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                panWaveMouseClicked(evt);
+            }
+        });
 
         javax.swing.GroupLayout panWaveLayout = new javax.swing.GroupLayout(panWave);
         panWave.setLayout(panWaveLayout);
@@ -233,18 +240,31 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
 
     private void btnOpenCloseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnOpenCloseActionPerformed
         // TODO add your handling code here:
-        if(r==null) {
+        if(recorder==null) {
             open();
         } else {
             close();
         }
 
-        btnOpenClose.setText(r==null?"Open":"Close");
+        btnOpenClose.setText(recorder==null?"Open":"Close");
     }//GEN-LAST:event_btnOpenCloseActionPerformed
 
     private void btnSetFmaxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSetFmaxActionPerformed
         imax = Double.parseDouble(txtImax.getText());
     }//GEN-LAST:event_btnSetFmaxActionPerformed
+
+    private void panWaveMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_panWaveMouseClicked
+        if(recorder==null) {
+            return;
+        }
+            
+        int x = evt.getX();
+        double freq = x / (double)panWave.getWidth();
+        freq *= recorder.getSampleRate() / 2.0;
+        
+        System.out.println("x -> "+x+" freq -> "+freq);
+        recorder.hintFreq(freq);
+    }//GEN-LAST:event_panWaveMouseClicked
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnOpenClose;
@@ -263,12 +283,16 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
     // End of variables declaration//GEN-END:variables
 
     @Override
-    public void onBuffer(double[] buf) {
-
+    public void onBuffer(double[] buf, double freq) {
+        if(buf==null) {
+            return;
+        }
+        Graphics g = panWave.getGraphics();
+        
         int w = panWave.getWidth();
         int h = panWave.getHeight();
         int s = buf.length;
-        panWave.getGraphics().clearRect(0, 0, w-1, h-1);
+        g.clearRect(0, 0, w-1, h-1);
 
         DoubleFFT_1D fft = new DoubleFFT_1D(buf.length);
         fft.realForward(buf);
@@ -287,14 +311,17 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         for(int i=0;i<n;i++) {
             int x = (i * w) / n;
             int y = (int)(h * (1.0d - buf[i]/max));
-            panWave.getGraphics().drawLine(x, y, x, h-1);
+            g.drawLine(x, y, x, h-1);
         }
-
+        
+        int x = (int) ((w * freq) / (recorder.getSampleRate() / 2.0));
+        g.setColor(Color.RED);
+        g.drawLine(x, 0, x, h-1);
     }
 
     @Override
     public void onLock(boolean locked, double error, double tone) {
-        lblStatus.setText("error "+error+"  tone "+tone);
+        lblStatus.setText( (locked?"LOCKED":"unlocked") + "  tone "+tone);
     }
         
 }
