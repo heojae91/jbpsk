@@ -43,7 +43,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                 try {
                     System.out.println("  source: "+mx.getLine(l).toString());
                 } catch (LineUnavailableException ex) {
-                    Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             li = mx.getTargetLineInfo();
@@ -52,7 +52,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                 try {
                     System.out.println("  target: "+mx.getLine(l).toString());
                 } catch (LineUnavailableException ex) {
-                    Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             if(tgt>0) {
@@ -82,7 +82,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                     break;
                 }
             } catch (LineUnavailableException ex) {
-                Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         if(curline==null) {
@@ -120,7 +120,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         jCheckBox1 = new javax.swing.JCheckBox();
         lblStatus = new javax.swing.JLabel();
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        setTitle("bpsk receiver");
 
         jLabel1.setText("Audio in :");
 

@@ -1,5 +1,10 @@
 package net.f4grx.audiobpsk;
 
+import biz.source_code.dsp.filter.FilterCharacteristicsType;
+import biz.source_code.dsp.filter.FilterPassType;
+import biz.source_code.dsp.filter.IirFilter;
+import biz.source_code.dsp.filter.IirFilterCoefficients;
+import biz.source_code.dsp.filter.IirFilterDesignFisher;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.LineUnavailableException;
@@ -12,31 +17,38 @@ import javax.sound.sampled.TargetDataLine;
 public class Recorder implements Runnable {
 
     private final TargetDataLine line;
-    private final int samplerate = 44100;
+    private final int samplerate;
     private final int bufsize = 8192;
     private double tone;
     private boolean running;
     private boolean complete;
     private Thread t;
     private RecorderCallback callback;
-    private final IIRBiquadFilter fi = new IIRBiquadFilter(2, samplerate);
-    private final IIRBiquadFilter fq = new IIRBiquadFilter(2, samplerate);
-    
+    IirFilter fi, fq;
     LinkedBlockingQueue<Byte> q;
 
     Recorder(TargetDataLine l) {
         line = l;
+        samplerate = 44100;
+                
         tone = 1000;
         q = new LinkedBlockingQueue<>();
+        IirFilterCoefficients coeffs = IirFilterDesignFisher.design(
+                FilterPassType.lowpass, 
+                FilterCharacteristicsType.chebyshev, 
+                2, //filterOrder, 
+                0, //filterRipple, 
+                0.5, //fcf1Rel, 
+                0.5 //fcf2Rel
+                );
+        fi = new IirFilter(coeffs);
+        fq = new IirFilter(coeffs);
     }
 
     public void setCallback(RecorderCallback cb) {
         callback = cb;
     }
-    
-    private static final int NZEROS = 2;
-    private static final int NPOLES = 2;
-    
+
     @Override
     public void run() {
         System.out.println("recorder start");
@@ -63,26 +75,22 @@ public class Recorder implements Runnable {
         byte[] buf = new byte[bufsize];
         double[] fltbuf = new double[samples];
         double si, sq, sample, sim, sqm;
-        double xv[] = new double[NZEROS+1];
-        double yv[] = new double[NPOLES+1];
         double error;
-        
+
         //low pass filter coefficients
-
-
         while (running) {
             try {
                 line.read(buf, 0, bufsize);
                 offset = 0;
                 int index = 0;
                 double erroravg = 0;
-                
+
                 //For each sample
-                while(offset<bufsize) {
-                    offset = getsample(af,buf,offset,fltbuf,index);
+                while (offset < bufsize) {
+                    offset = getsample(af, buf, offset, fltbuf, index);
                     sample = fltbuf[index];
                     index++;
-                    
+
                     //Update VCO
                     omega = 2 * Math.PI * tone / (double) samplerate;
                     phase += omega;
@@ -97,26 +105,25 @@ public class Recorder implements Runnable {
                     //LPF 
                     sim = fi.process(sim);
                     sqm = fq.process(sqm);
-                    
+
                     //Multiply to get error term
                     error = sim * sqm;
-                    
+
                     //should also be LPFed
                     erroravg += error;
-                    
+
                     //Loop gain...
-                    
                     //update VCO
                     tone -= error;
-                    
+
                     //System.out.println( (""+sample+"\t"+error).replace('.', ',') );
                 }
-                
-                if(callback!=null) {
+
+                if (callback != null) {
                     callback.onBuffer(fltbuf);
                     callback.onLock(false, erroravg, tone);
                 }
-                
+
                 if (Thread.interrupted()) {
                     throw new InterruptedException("interrupt pending");
                 }
@@ -156,43 +163,43 @@ public class Recorder implements Runnable {
         int samp = 0;
         int samp1, samp2;
         double dsamp = 0;
-        
+
         int chs = af.getChannels();
         for (int ch = 0; ch < chs; ch++) {
             if (sb == 16) {
-                samp1 = (int)buf[offset++] & 0xFF;
-                samp2 = (int)buf[offset++] & 0xFF;
+                samp1 = (int) buf[offset++] & 0xFF;
+                samp2 = (int) buf[offset++] & 0xFF;
                 if (af.isBigEndian()) {
                     samp = (samp1 << 8) | samp2;
                 } else {
                     samp = (samp2 << 8) | samp1;
                 }
-                if(af.getEncoding()==AudioFormat.Encoding.PCM_SIGNED && ((samp&0x8000)==0x8000) ) {
+                if (af.getEncoding() == AudioFormat.Encoding.PCM_SIGNED && ((samp & 0x8000) == 0x8000)) {
                     samp |= 0xFFFF0000;
                 }
-                dsamp += (double)samp / 32768.0d;
+                dsamp += (double) samp / 32768.0d;
             } else if (sb == 8) {
-                samp = (int)buf[offset++] & 0xFF;
-                if(af.getEncoding()==AudioFormat.Encoding.PCM_SIGNED && ((samp&0x80)==0x80) ) {
+                samp = (int) buf[offset++] & 0xFF;
+                if (af.getEncoding() == AudioFormat.Encoding.PCM_SIGNED && ((samp & 0x80) == 0x80)) {
                     samp |= 0xFFFFFF00;
                 }
-                dsamp += (double)samp / 128.0d;
+                dsamp += (double) samp / 128.0d;
             } else {
                 offset++;
             }
         }
-        dest[destoff] = dsamp / (double)chs;
+        dest[destoff] = dsamp / (double) chs;
 
         return offset;
     }
 
     public void setBaud(int br) {
-        System.out.println("baudrate -> "+br);
+        System.out.println("baudrate -> " + br);
     }
-    
+
     public void setLocalOsc(int t) {
         tone = t;
-        System.out.println("LO freq -> "+t);
+        System.out.println("LO freq -> " + t);
     }
 
 }

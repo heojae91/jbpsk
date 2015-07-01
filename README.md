@@ -7,6 +7,7 @@ What is this
 This project is a kind of demo that shows how to naively generate a BPSK signal and how to receive it.
 
 You need a reasonably fast computer to handle the FFT to display the spectrum on the rx side. This is pure java!
+The demodulator is also not optimized.
 
 What it does
 ============
@@ -17,9 +18,8 @@ So this is really DBPSK, because the encoding is differential. This kind of enco
 
 Decoding BPSK can be achieved using a number of methods.
 
-One method relies on multiplying the signal by a time shifted version of itself. it only works if you know the baud rate.
+One method relies on multiplying the signal by a time shifted version of itself. It only works if you know the baud rate, since the data must be shifted by one bit time.
 One other method is to feed the input signal to a PLL; the PLL's VCO will then track the input signal. This is a kind of carrer recovery. Actually this process is a bit more complex, we use a costas loop, that can keep the sync despite the phase changes. This allows us to get a reference signal, and notice the phase changes reliably.
-
 
 How to use
 ==========
@@ -28,8 +28,8 @@ To use it, you are supposed to run two instances of the program, and connect the
 
 One instance generates a BPSK signal in the audio range, the other instance shows a spectrum of the incoming audio and receives the data.
 
-Sender side
------------
+Transmitter side
+----------------
 
 - select the audio output
 - lower the audio volume, or beware, high-level audio tones will hurt your ears, your wife, your newborn, and your neighbours.

@@ -13,7 +13,7 @@ import javax.swing.DefaultComboBoxModel;
  *
  * @author f4grx
  */
-public class sender extends javax.swing.JFrame {
+public class transmitter extends javax.swing.JFrame {
     
     private boolean txtMsgClicked;
    
@@ -22,7 +22,7 @@ public class sender extends javax.swing.JFrame {
     /**
      * Creates new form sender
      */
-    public sender() {
+    public transmitter() {
         initComponents();
         txtMsgClicked = false;
         DefaultComboBoxModel<MixerProxy> lm = new DefaultComboBoxModel<>();
@@ -41,7 +41,7 @@ public class sender extends javax.swing.JFrame {
                 try {
                     System.out.println("  source: "+mx.getLine(l).toString());
                 } catch (LineUnavailableException ex) {
-                    Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             li = mx.getTargetLineInfo();
@@ -50,7 +50,7 @@ public class sender extends javax.swing.JFrame {
                 try {
                     System.out.println("  target: "+mx.getLine(l).toString());
                 } catch (LineUnavailableException ex) {
-                    Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                    Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
             if(src>0) {
@@ -82,7 +82,7 @@ public class sender extends javax.swing.JFrame {
                     break;
                 }
             } catch (LineUnavailableException ex) {
-                Logger.getLogger(sender.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(transmitter.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         if(curline==null) {
@@ -121,7 +121,7 @@ public class sender extends javax.swing.JFrame {
         jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle("BPSK emitter");
+        setTitle("BPSK transmitter");
 
         jLabel1.setText("Audio out :");
 
