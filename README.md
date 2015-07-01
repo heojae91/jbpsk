@@ -43,6 +43,15 @@ Receiver side
 - open it using the button
 - look at the audio spectrum (vertical scale is automatic)
 
+Build
+=====
+The project uses Maven. It can be built directly on the command line, but also in almost any IDE. I am using Netbeans 8.
+
+Dependencies
+============
+
+The project uses the FFT routines from JTransform.
+
 TODO
 ====
 Decoding! For the moment, the only thing done in the receiver is displaying the spectrum. But you will only know that if you RTFM until here.
