@@ -9,7 +9,7 @@ import javax.sound.sampled.SourceDataLine;
  *
  * @author f4grx
  */
-class Player implements Runnable {
+class BpskGenerator implements Runnable {
     private final SourceDataLine line;
     private final int samplerate;
     private double freq;
@@ -24,7 +24,7 @@ class Player implements Runnable {
     LinkedBlockingQueue<Byte> q;
     private final int bufsize;
 
-    public Player(SourceDataLine l) {
+    public BpskGenerator(SourceDataLine l) {
         line = l;
         samplerate = 44100;
         bufsize = 8192;

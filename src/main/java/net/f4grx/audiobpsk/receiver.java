@@ -16,17 +16,15 @@ import org.jtransforms.fft.DoubleFFT_1D;
  *
  * @author f4grx
  */
-public class receiver extends javax.swing.JFrame implements RecorderCallback {
+public class receiver extends javax.swing.JFrame implements BpskDecoderCallback {
     
-    private Recorder recorder;
-    private double imax;
+    private BpskCostasLoopDecoder recorder;
+    private DoubleFFT_1D fft;
     
     /**
      * Creates new form receiver
      */
     public receiver() {
-        imax = 10000;
-        
         initComponents();
 
         DefaultComboBoxModel<MixerProxy> lm = new DefaultComboBoxModel<>();
@@ -78,7 +76,7 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                 System.out.println("  target: "+line.toString());
                 if(line instanceof TargetDataLine) {
                     curline = line;
-                    recorder = new Recorder((TargetDataLine)curline);
+                    recorder = new BpskCostasLoopDecoder((TargetDataLine)curline);
                     recorder.setCallback(this);
                     recorder.start();
                     break;
@@ -115,11 +113,6 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         txtBauds = new javax.swing.JTextField();
         jLabel5 = new javax.swing.JLabel();
         panWave = new javax.swing.JPanel();
-        jLabel6 = new javax.swing.JLabel();
-        txtImax = new javax.swing.JTextField();
-        jLabel7 = new javax.swing.JLabel();
-        btnSetFmax = new javax.swing.JButton();
-        jCheckBox1 = new javax.swing.JCheckBox();
         lblStatus = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
@@ -155,23 +148,8 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         );
         panWaveLayout.setVerticalGroup(
             panWaveLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 191, Short.MAX_VALUE)
+            .addGap(0, 256, Short.MAX_VALUE)
         );
-
-        jLabel6.setText("Amp");
-
-        txtImax.setText("0");
-
-        jLabel7.setText("samples");
-
-        btnSetFmax.setText("Set");
-        btnSetFmax.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btnSetFmaxActionPerformed(evt);
-            }
-        });
-
-        jCheckBox1.setText("auto");
 
         lblStatus.setText("Status");
 
@@ -195,16 +173,6 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                         .addComponent(txtBauds)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jLabel5))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel6)
-                        .addGap(4, 4, 4)
-                        .addComponent(jCheckBox1)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(txtImax)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel7)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnSetFmax))
                     .addComponent(panWave, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
@@ -222,13 +190,6 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
                     .addComponent(txtBauds, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel5))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel6)
-                    .addComponent(txtImax, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel7)
-                    .addComponent(btnSetFmax)
-                    .addComponent(jCheckBox1))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(lblStatus)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(panWave, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -249,10 +210,6 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         btnOpenClose.setText(recorder==null?"Open":"Close");
     }//GEN-LAST:event_btnOpenCloseActionPerformed
 
-    private void btnSetFmaxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSetFmaxActionPerformed
-        imax = Double.parseDouble(txtImax.getText());
-    }//GEN-LAST:event_btnSetFmaxActionPerformed
-
     private void panWaveMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_panWaveMouseClicked
         if(recorder==null) {
             return;
@@ -268,18 +225,13 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnOpenClose;
-    private javax.swing.JButton btnSetFmax;
     private javax.swing.JComboBox cmbDevices;
-    private javax.swing.JCheckBox jCheckBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel lblStatus;
     private javax.swing.JPanel panWave;
     private javax.swing.JTextField txtBauds;
-    private javax.swing.JTextField txtImax;
     // End of variables declaration//GEN-END:variables
 
     @Override
@@ -287,6 +239,10 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         if(buf==null) {
             return;
         }
+        if(fft == null) {
+            fft = new DoubleFFT_1D(buf.length);
+        }
+
         Graphics g = panWave.getGraphics();
         
         int w = panWave.getWidth();
@@ -294,11 +250,12 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
         int s = buf.length;
         g.clearRect(0, 0, w-1, h-1);
 
-        DoubleFFT_1D fft = new DoubleFFT_1D(buf.length);
         fft.realForward(buf);
+
         int n = buf.length/2;
+        double max = 1;
+
         int off = 0;
-        double max = 0;
         for(int i=0;i<n;i++) {
             double a = buf[off++];
             double b = buf[off++];
@@ -313,15 +270,14 @@ public class receiver extends javax.swing.JFrame implements RecorderCallback {
             int y = (int)(h * (1.0d - buf[i]/max));
             g.drawLine(x, y, x, h-1);
         }
-        
         int x = (int) ((w * freq) / (recorder.getSampleRate() / 2.0));
         g.setColor(Color.RED);
         g.drawLine(x, 0, x, h-1);
     }
 
     @Override
-    public void onLock(boolean locked, double error, double tone) {
-        lblStatus.setText( (locked?"LOCKED":"unlocked") + "  tone "+tone);
+    public void onLock(boolean locked, double error, double freq) {
+        lblStatus.setText( (locked?"LOCKED":"unlocked") + "  tone "+freq);
     }
         
 }

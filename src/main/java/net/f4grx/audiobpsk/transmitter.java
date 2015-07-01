@@ -17,7 +17,7 @@ public class transmitter extends javax.swing.JFrame {
     
     private boolean txtMsgClicked;
    
-    private Player player;
+    private BpskGenerator player;
     
     /**
      * Creates new form sender
@@ -76,7 +76,7 @@ public class transmitter extends javax.swing.JFrame {
                 System.out.println("  source: "+line.toString());
                 if(line instanceof SourceDataLine) {
                     curline = line;
-                    player = new Player((SourceDataLine)curline);
+                    player = new BpskGenerator((SourceDataLine)curline);
                     player.setBaud(Integer.decode(txtBauds.getText()));
                     player.setFreq((double)sldFreq.getValue());
                     player.start();
