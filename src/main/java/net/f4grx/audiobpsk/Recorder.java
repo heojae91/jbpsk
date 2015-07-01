@@ -40,9 +40,9 @@ public class Recorder implements Runnable {
         IirFilterCoefficients coeffs1 = IirFilterDesignFisher.design(
                 FilterPassType.lowpass, 
                 FilterCharacteristicsType.butterworth, 
-                4, //filterOrder, 
+                1, //filterOrder, 
                 0, //filterRipple, 
-                0.1, //10000.0/(double)samplerate, //fcf1Rel, 
+                0.2, //10000.0/(double)samplerate, //fcf1Rel, 
                 0 //fcf2Rel
                 );
         fi = new IirFilter(coeffs1);
@@ -81,7 +81,6 @@ public class Recorder implements Runnable {
         double[] fltbuf = new double[samples];
         double si, sq, sample, sim, sqm;
         double error = 0;
-        double tone = 0;
         omega = TWOPI * freq / (double) samplerate;
 
         //low pass filter coefficients
@@ -108,11 +107,11 @@ public class Recorder implements Runnable {
                     omega += beta  * error;
 
                     //bind freq
-                    tone = (omega*samplerate)/TWOPI;
-                    if(tone < 500) {
+                    freq = (omega*samplerate)/TWOPI;
+                    if(freq < 100) {
                         omega = (TWOPI*500/samplerate);
                     }
-                    if(tone > 4000) {
+                    if(freq > samplerate/2) {
                         omega = (TWOPI*4000/samplerate);
                     }
 
@@ -139,12 +138,11 @@ public class Recorder implements Runnable {
                 }
                 
                 if (callback != null) {
-                    double f = omega * (double) samplerate/ TWOPI;
-                    callback.onBuffer(fltbuf, f);
+                    callback.onBuffer(fltbuf, freq);
                     boolean locked = errtot<1e-4;
-                    callback.onLock(locked, errtot, f);
+                    callback.onLock(locked, errtot, freq);
                     if(!locked) {
-                        System.out.println("unlock err "+errtot);
+                        //System.out.println("unlock err "+errtot);
                     }
                 }
 
