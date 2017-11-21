@@ -5,6 +5,12 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
+import biz.source_code.dsp.filter.IirFilter;
+import biz.source_code.dsp.filter.FilterCharacteristicsType;
+import biz.source_code.dsp.filter.FilterPassType;
+import biz.source_code.dsp.filter.IirFilterCoefficients;
+import biz.source_code.dsp.filter.IirFilterDesignFisher;
+
 /**
  *
  * @author f4grx
@@ -24,6 +30,8 @@ class BpskGenerator implements Runnable {
     LinkedBlockingQueue<Byte> q;
     private final int bufsize;
 
+    private final IirFilter bpFilter;
+    
     public BpskGenerator(SourceDataLine l) {
         line = l;
         samplerate = 44100;
@@ -32,6 +40,15 @@ class BpskGenerator implements Runnable {
         baudcount = 0;
         sendbits = 0;
         q = new LinkedBlockingQueue<>();
+        IirFilterCoefficients coeffs = IirFilterDesignFisher.design(
+                FilterPassType.lowpass,
+                FilterCharacteristicsType.butterworth,
+                1, //filterOrder, 
+                0, //filterRipple, 
+                18000, //fcf1Rel, 
+                22000 //fcf2Rel
+        );
+        bpFilter = new IirFilter(coeffs);
     }
 
     private static final double TWOPI = 2 * Math.PI;
